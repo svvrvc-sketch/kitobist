@@ -1,10 +1,12 @@
 import asyncio
 import logging
 import sys
+import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
+from aiohttp import web
 
 import config
 from database import db
@@ -17,22 +19,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+async def handle_health_check(request):
+    """Render port monitoringi uchun health-check"""
+    return web.Response(text="Bot is running healthy!")
+
+async def start_web_server():
+    """Render $PORT uchun web server"""
+    port = int(os.environ.get("PORT", 8080))
+    app = web.Application()
+    app.router.add_get("/", handle_health_check)
+    app.router.add_get("/health", handle_health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    logger.info(f"🌐 Health-check web server port {port} da ishga tushdi.")
+
 async def main():
     if not config.BOT_TOKEN:
-        logger.error(
-            "❌ BOT_TOKEN topilmadi! Iltimos, .env fayliga @BotFather dan olingan bot tokeningizni kiriting."
-        )
-        print("\n" + "="*50)
-        print("DIQQAT: .env faylida BOT_TOKEN ko'rsatilmagan!")
-        print("Iltimos, Kitobist/.env faylini oching va BOT_TOKEN ni kiriting.")
-        print("="*50 + "\n")
+        logger.error("❌ BOT_TOKEN topilmadi!")
         return
+
+    # Render uchun web serverni fonda ishga tushirish (port scan muammosi bo'lmasligi uchun)
+    if os.environ.get("PORT"):
+        try:
+            await start_web_server()
+        except Exception as e:
+            logger.warning(f"Web serverni ishga tushirishda xatolik: {e}")
 
     # Ma'lumotlar bazasini ishga tushirish
     await db.init()
     logger.info("✅ Ma'lumotlar bazasi tayyor.")
 
-    # Agar .env da dastlabki kanallar berilgan bo'lsa, ularni tekshirib kiritish
     if config.CHANNELS:
         for ch in config.CHANNELS:
             clean_ch = ch.strip()
@@ -49,16 +67,14 @@ async def main():
     )
     dp = Dispatcher()
 
-    # Routerlarni ulash (Admin birinchi navbatda)
+    # Routerlarni ulash
     dp.include_router(admin_router)
     dp.include_router(user_router)
 
     bot_info = await bot.get_me()
     logger.info(f"🚀 Bot muvaffaqiyatli ishga tushdi: @{bot_info.username}")
-    print(f"\n>>> Kitobist Boti ishga tushdi: @{bot_info.username} <<<\n")
 
     try:
-        # Eski keshdagi yangilanishlarni tashlab yuborish
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     finally:
