@@ -1,0 +1,29 @@
+# Virtual Environment (bularni aslo GitHubga yuklamaslik kerak!)
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets
+.env
+.env.local
+
+# Databases
+*.db
+*.sqlite3
+*.sqlite
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
