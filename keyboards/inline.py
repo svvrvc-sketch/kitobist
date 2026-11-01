@@ -11,15 +11,33 @@ def after_register_inline_keyboard() -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
-def share_link_inline_keyboard(bot_username: str, user_id: int) -> InlineKeyboardMarkup:
+def share_link_inline_keyboard(bot_username: str, user_id: int, custom_share_text: str = None) -> InlineKeyboardMarkup:
     """Do'stlarga ulashish tugmasi"""
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
-    share_text = (
-        "🎉 “Farzandimni to‘g‘ri tarbiyalayman” tanlovida qatnashing va "
-        "qimmatbaho kurslar hamda sovg‘alarni yutib oling! 🎁\n\n"
-        "👉 Ishtirok etish havolasi:"
-    )
-    encoded_share_url = f"https://t.me/share/url?url={quote(ref_link)}&text={quote(share_text)}"
+    
+    if custom_share_text:
+        # Agar admin matn kiritgan bo'lsa va unda {ref_link} bo'lsa almashtiramiz
+        clean_text = custom_share_text.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "").replace("<code>", "").replace("</code>", "")
+        if "{ref_link}" in clean_text:
+            full_share_message = clean_text.replace("{ref_link}", ref_link)
+        else:
+            full_share_message = f"{clean_text}\n\n👉 Ishtirok etish havolasi:\n{ref_link}"
+    else:
+        full_share_message = (
+            "🥳 DIQQAT XUSHXABAR❗️\n"
+            "Kitobist kanalida kitob sovg‘ali konkurs! 📚🎁\n\n"
+            "SOVG'ALAR 😇\n"
+            "🥇 1-o‘rin: «Saodat Asri» (4 qismli to‘liq to‘plam)\n"
+            "🥈 2-o‘rin: «Ko‘zlaringni haromdan saqla»\n"
+            "🥉 3-o‘rin: «Devona» — Fotih Duman\n"
+            "🏅 4-o‘rin: «1500 yillik mahbuslar»\n"
+            "⭐️ 5-o‘rin: «Fotimaning bolasi»\n\n"
+            "📖 Shartlar juda oddiy! Pastdagi havola orqali botga o‘tib, start bosing va ishtirok eting! ⬇️\n\n"
+            f"👉 Ishtirok etish havolasi:\n{ref_link}"
+        )
+    
+    # Telegram share link: butun matn bitta qilib beriladi, shunda link eng pastda chiroyli chiqadi
+    encoded_share_url = f"https://t.me/share/url?url=&text={quote(full_share_message)}"
     
     keyboard = [
         [InlineKeyboardButton(text="🚀 Do'stlarga ulashish", url=encoded_share_url)]

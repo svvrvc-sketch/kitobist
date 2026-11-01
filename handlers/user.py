@@ -192,12 +192,13 @@ async def show_personal_link(event: Message | CallbackQuery, bot: Bot):
     ref_link = f"https://t.me/{bot_info.username}?start={user.id}"
 
     post = await db.get_button_post("btn_link")
-    reply_markup = share_link_inline_keyboard(bot_info.username, user.id)
 
     if post and (post.get("content_text") or post.get("photo_id")):
         photo_id = post.get("photo_id")
         raw_text = post.get("content_text") or ""
         
+        reply_markup = share_link_inline_keyboard(bot_info.username, user.id, custom_share_text=raw_text)
+
         if "{ref_link}" in raw_text:
             caption = raw_text.replace("{ref_link}", ref_link)
         else:
@@ -217,8 +218,17 @@ async def show_personal_link(event: Message | CallbackQuery, bot: Bot):
         return
 
     # Standart ko'rinish
+    reply_markup = share_link_inline_keyboard(bot_info.username, user.id)
     caption = (
-        f"{TEXT_GIFTS}\n\n"
+        "🥳 <b>DIQQAT XUSHXABAR❗️</b>\n"
+        "Kitobist kanalida kitob sovg‘ali konkurs! 📚🎁\n\n"
+        "<b>SOVG'ALAR 😇</b>\n"
+        "🥇 1-o‘rin: «Saodat Asri» (4 qismli to‘liq to‘plam)\n"
+        "🥈 2-o‘rin: «Ko‘zlaringni haromdan saqla»\n"
+        "🥉 3-o‘rin: «Devona» — Fotih Duman\n"
+        "🏅 4-o‘rin: «1500 yillik mahbuslar»\n"
+        "⭐️ 5-o‘rin: «Fotimaning bolasi»\n\n"
+        "📖 <b>Shartlar juda oddiy!</b> Pastdagi havola orqali botga o‘ting va imkoniyatni qo‘ldan boy bermang!\n\n"
         f"👉 <b>Sizning shaxsiy taklif havolangiz:</b>\n"
         f"<code>{ref_link}</code>"
     )
