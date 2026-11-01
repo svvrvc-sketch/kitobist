@@ -11,6 +11,7 @@ from aiohttp import web
 import config
 from database import db
 from handlers import user_router, admin_router
+from utils import SubscriptionMiddleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -68,6 +69,8 @@ async def main():
     dp = Dispatcher()
 
     # Routerlarni ulash
+    user_router.message.middleware(SubscriptionMiddleware())
+    user_router.callback_query.middleware(SubscriptionMiddleware())
     dp.include_router(admin_router)
     dp.include_router(user_router)
 

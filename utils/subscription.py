@@ -12,6 +12,19 @@ ALLOWED_STATUSES = [
     ChatMemberStatus.RESTRICTED
 ]
 
+def format_channel_id(ch_id: str | int) -> str | int:
+    """Kanal ID yoki username ni to'g'ri formatga keltirish"""
+    ch_str = str(ch_id).strip()
+    # Agar raqamli ID bo'lsa (masalan -100123456789 yoki 123456789)
+    if ch_str.startswith("-") and ch_str[1:].isdigit():
+        return int(ch_str)
+    if ch_str.isdigit():
+        return int(f"-100{ch_str}") if not ch_str.startswith("100") else int(f"-{ch_str}")
+    # Agar username bo'lsa (@ bilan)
+    if not ch_str.startswith("@") and not ch_str.startswith("-"):
+        return f"@{ch_str}"
+    return ch_str
+
 async def check_user_subscriptions(bot: Bot, user_id: int, channels: List[Dict[str, Any]]) -> Tuple[bool, List[Dict[str, Any]]]:
     """
     Foydalanuvchining majburiy kanallarga a'zo bo'lganligini tekshirish.
@@ -22,14 +35,15 @@ async def check_user_subscriptions(bot: Bot, user_id: int, channels: List[Dict[s
 
     unsubscribed = []
     for ch in channels:
-        ch_id = ch["channel_id"]
+        raw_id = ch["channel_id"]
+        chat_identifier = format_channel_id(raw_id)
         try:
-            member = await bot.get_chat_member(chat_id=ch_id, user_id=user_id)
+            member = await bot.get_chat_member(chat_id=chat_identifier, user_id=user_id)
             if member.status not in ALLOWED_STATUSES:
                 unsubscribed.append(ch)
         except Exception as e:
-            # Agar bot kanal admini bo'lmasa yoki kanal topilmasa xato bermasligi uchun
-            logger.warning(f"Kanal obunasini tekshirishda xatolik ({ch_id}): {e}")
-            pass
+            logger.warning(f"Kanal obunasini tekshirishda xatolik (Kanal: {chat_identifier}, User: {user_id}): {e}")
+            # Agar tekshirib bo'lmasa yoki a'zo bo'lmasa, foydalanuvchini a'zo bo'lishga yo'naltirish
+            unsubscribed.append(ch)
 
     return len(unsubscribed) == 0, unsubscribed

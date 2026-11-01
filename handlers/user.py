@@ -197,7 +197,11 @@ async def show_personal_link(event: Message | CallbackQuery, bot: Bot):
     if post and (post.get("content_text") or post.get("photo_id")):
         photo_id = post.get("photo_id")
         raw_text = post.get("content_text") or ""
-        caption = f"{raw_text}\n\n👉 <b>Sizning shaxsiy taklif havolangiz:</b>\n<code>{ref_link}</code>"
+        
+        if "{ref_link}" in raw_text:
+            caption = raw_text.replace("{ref_link}", ref_link)
+        else:
+            caption = f"{raw_text}\n\n👉 <b>Sizning shaxsiy taklif havolangiz:</b>\n<code>{ref_link}</code>"
 
         if isinstance(event, CallbackQuery):
             await event.answer()

@@ -189,7 +189,7 @@ async def process_ch_title(message: Message, state: FSMContext):
     await message.answer("Kanalga kirish havolasini kiriting (masalan: <b>https://t.me/kanal_username</b>):", parse_mode="HTML")
 
 @admin_router.message(AdminStates.waiting_for_channel_url)
-async def process_ch_url(message: Message, state: FSMContext):
+async def process_ch_url(message: Message, state: FSMContext, bot: Bot):
     if message.text == "/cancel":
         await state.clear()
         await message.answer("Bekor qilindi.", reply_markup=admin_menu_keyboard())
@@ -199,9 +199,24 @@ async def process_ch_url(message: Message, state: FSMContext):
     channel_title = data["channel_title"]
     channel_url = message.text.strip()
 
+    # Bot kanal admini ekanligini tekshirish
+    warning = ""
+    try:
+        from utils.subscription import format_channel_id
+        formatted_id = format_channel_id(channel_id)
+        member = await bot.get_chat_member(chat_id=formatted_id, user_id=bot.id)
+        if member.status not in ["administrator", "creator"]:
+            warning = "\n\n⚠️ <b>DIQQAT:</b> Bot bu kanalda administrator emas! Foydalanuvchilar a'zoligini tekshirish uchun botni kanalda administrator qilishingiz shart!"
+    except Exception as e:
+        warning = f"\n\n⚠️ <b>DIQQAT:</b> Bot kanalni tekshira olmadi ({e}). Botni ushbu kanalda administrator qilganingizga ishonch hosil qiling!"
+
     await db.add_channel(channel_id, channel_title, channel_url)
     await state.clear()
-    await message.answer(f"✅ <b>{channel_title}</b> kanali muvaffaqiyatli qo'shildi!", reply_markup=admin_menu_keyboard(), parse_mode="HTML")
+    await message.answer(
+        f"✅ <b>{channel_title}</b> kanali muvaffaqiyatli qo'shildi!{warning}",
+        reply_markup=admin_menu_keyboard(),
+        parse_mode="HTML"
+    )
 
 # 🎛 Tugmalarni tahrirlash menyusi
 @admin_router.message(F.text == "🎛 Tugmalarni tahrirlash")
