@@ -17,7 +17,7 @@ _channels_str = os.getenv("CHANNELS", "")
 CHANNELS = [ch.strip() for ch in _channels_str.split(",") if ch.strip()]
 
 # Default Contest texts
-CONTEST_NAME = "Farzandimni to‘g‘ri tarbiyalayman"
+CONTEST_NAME = "Kitobist"
 
 TEXT_REQUEST_PHONE = (
     "Juda yaxshi!\n\n"
@@ -42,27 +42,28 @@ TEXT_MY_ACCOUNT = (
 )
 
 TEXT_GIFTS = (
-    "🎉 <b>“Farzandimni to‘g‘ri tarbiyalayman”</b> konkursida ishtirok etayotganingizdan mamnunmiz!\n\n"
-    "G‘oliblar uchun ajratilgan sovg‘alar bilan tanishing 👇\n\n"
-    "🥇 <b>1-o‘rin (1 kishi):</b>\n"
-    "“Farzand tarbiyasi” PREMIUM kursida bepul o‘qish (qiymati 1 mln so‘m)\n\n"
-    "🥈 <b>2-o‘rin (3 kishi):</b>\n"
-    "“Farzand tarbiyasi” kursiga 50% chegirma\n\n"
-    "🥉 <b>3-o‘rin (5 kishi):</b>\n"
-    "Farzand tarbiyasi bo‘yicha audio dars\n\n"
-    "🎁 <b>100+ taklif qilganlarga:</b> “Oila va farzand tarbiyasi” darsliklari\n"
-    "🎁 <b>50+ taklif qilganlarga:</b> “Oila” haqida darslik\n"
-    "🎁 <b>30+ taklif qilganlarga:</b> bepul audio darslik\n\n"
-    "📌 <i>Eslatma: havolani faqat farzand tarbiyasiga qiziquvchi ota-onalar, "
-    "bo‘lajak ota-onalar va yosh oilalarga yuboring!</i>\n\n"
-    "📅 <b>G‘oliblar 9-noyabr, soat 20:00 da aniqlanadi.</b>"
+    "🥳 <b>DIQQAT, AJOYIB KONKURS!</b>\n\n"
+    "Kitobsevarlar uchun qimmatbaho kitoblar to‘plami sovg‘aga berilmoqda! 📚✨\n\n"
+    "🎁 <b>G‘oliblarni kutayotgan kitoblar:</b>\n\n"
+    "🥇 <b>1-o‘rin:</b> «Saodat Asri qissalari» (4 qismli to‘liq to‘plam)\n"
+    "🥈 <b>2-o‘rin:</b> «Ko‘zlaringni haromdan saqla»\n"
+    "🥉 <b>3-o‘rin:</b> «Devona» — Fotih Duman\n"
+    "🎖 <b>4-o‘rin:</b> «1500 yillik mahbuslar»\n"
+    "🎖 <b>5-o‘rin:</b> «Fotimaning bolasi»\n\n"
+    "📖 <b>Qatnashish sharti juda oddiy:</b> Pastdagi havolangizni do‘stlaringizga ulashing va ko‘proq ball to‘plang!"
 )
 
 TEXT_RULES = TEXT_GIFTS
 
 TEXT_SHARE_TEMPLATE = (
-    "🎉 <b>“Farzandimni to‘g‘ri tarbiyalayman” konkursida ishtirok eting!</b>\n\n"
-    "G‘oliblar uchun ajratilgan sovg‘alar va bepul darsliklarni yutib oling! 🎁\n\n"
-    "👇 Ishtirok etish uchun pastdagi havolani bosing:\n"
+    "🥳 <b>DIQQAT, AJOYIB KONKURS!</b>\n\n"
+    "Kitobsevarlar uchun qimmatbaho kitoblar to‘plami sovg‘aga berilmoqda! 📚✨\n\n"
+    "🎁 <b>G‘oliblarni kutayotgan kitoblar:</b>\n\n"
+    "🥇 <b>1-o‘rin:</b> «Saodat Asri qissalari» (4 qismli to‘liq to‘plam)\n"
+    "🥈 <b>2-o‘rin:</b> «Ko‘zlaringni haromdan saqla»\n"
+    "🥉 <b>3-o‘rin:</b> «Devona» — Fotih Duman\n"
+    "🎖 <b>4-o‘rin:</b> «1500 yillik mahbuslar»\n"
+    "🎖 <b>5-o‘rin:</b> «Fotimaning bolasi»\n\n"
+    "📖 <b>Qatnashish sharti juda oddiy:</b> Quyidagi havola orqali botga kiring, shaxsiy taklif havolangizni oling va imkoniyatni qo‘ldan boy bermang! ⬇️\n\n"
     "{referral_link}"
 )

@@ -26,6 +26,10 @@ class SubscriptionMiddleware(BaseMiddleware):
             if user.id in ADMINS:
                 return await handler(event, data)
 
+            # /start komandasini o'tkazib yuboramiz (chunki cmd_start o'zi referalni saqlab, keyin obunani tekshiradi)
+            if isinstance(event, Message) and event.text and event.text.startswith("/start"):
+                return await handler(event, data)
+
             # Callback query check_subscription bo'lsa o'tkazib yuboramiz
             if isinstance(event, CallbackQuery) and event.data == "check_subscription":
                 return await handler(event, data)

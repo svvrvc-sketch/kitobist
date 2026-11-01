@@ -135,6 +135,15 @@ async def process_contact(message: Message, bot: Bot):
         )
         return
 
+    db_user = await db.get_user(user.id)
+    if db_user and db_user.get("is_verified") == 1:
+        await message.answer(
+            f"✅ Siz allaqachon ro'yxatdan o'tgansiz, <b>{user.full_name}</b>!",
+            reply_markup=main_menu_keyboard(is_admin=is_admin(user.id)),
+            parse_mode="HTML"
+        )
+        return
+
     phone = format_phone(contact.phone_number)
     await complete_registration(message, bot, phone)
 
@@ -159,6 +168,19 @@ async def process_phone_text(message: Message, bot: Bot):
 
 async def complete_registration(message: Message, bot: Bot, phone: str):
     user = message.from_user
+
+    # Kanallarga a'zolikni qat'iy tekshiramiz (obuna bo'lmasa ball berilmaydi va ro'yxatdan o'tkazilmaydi)
+    channels = await db.get_channels()
+    is_sub, unsubscribed = await check_user_subscriptions(bot, user.id, channels)
+    if not is_sub:
+        await message.answer(
+            "⚠️ <b>Avval quyidagi kanallarga a'zo bo'lishingiz shart!</b>\n"
+            "Kanallarga a'zo bo'lgach, “✅ Obunani tekshirish” tugmasini bosing:",
+            reply_markup=channels_check_keyboard(unsubscribed),
+            parse_mode="HTML"
+        )
+        return
+
     referrer_id = await db.verify_user_phone(user.id, phone)
 
     # Taklif qilgan foydalanuvchiga bildirishnoma va +1 ball

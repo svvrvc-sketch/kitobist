@@ -36,8 +36,8 @@ def share_link_inline_keyboard(bot_username: str, user_id: int, custom_share_tex
             f"👉 Ishtirok etish uchun havola:\n{ref_link}"
         )
     
-    # Telegram rasmiy ulashish havolasi: url har doim valid va text encode qilingan
-    encoded_share_url = f"https://t.me/share/url?url={quote(ref_link)}&text={quote(share_text)}"
+    # Telegram rasmiy ulashish havolasi: havola matnning eng pastida chiroyli chiqishi uchun
+    encoded_share_url = f"https://t.me/share/url?text={quote(share_text)}"
     
     keyboard = [
         [InlineKeyboardButton(text="🚀 Do'stlarga ulashish", url=encoded_share_url)]
@@ -49,7 +49,9 @@ def channels_check_keyboard(channels: List[Dict[str, Any]]) -> InlineKeyboardMar
     inline_keyboard = []
     for idx, ch in enumerate(channels, start=1):
         btn_text = f"📢 {ch.get('channel_title', f'Kanal {idx}')}"
-        btn_url = ch.get("channel_url", "https://t.me")
+        btn_url = ch.get("channel_url", "https://t.me") or "https://t.me"
+        if not (btn_url.startswith("http://") or btn_url.startswith("https://") or btn_url.startswith("tg://")):
+            btn_url = f"https://{btn_url}"
         inline_keyboard.append([InlineKeyboardButton(text=btn_text, url=btn_url)])
     
     inline_keyboard.append([

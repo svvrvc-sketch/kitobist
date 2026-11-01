@@ -43,7 +43,11 @@ async def check_user_subscriptions(bot: Bot, user_id: int, channels: List[Dict[s
                 unsubscribed.append(ch)
         except Exception as e:
             logger.warning(f"Kanal obunasini tekshirishda xatolik (Kanal: {chat_identifier}, User: {user_id}): {e}")
-            # Agar tekshirib bo'lmasa yoki a'zo bo'lmasa, foydalanuvchini a'zo bo'lishga yo'naltirish
+            err_str = str(e).lower()
+            # Agar botning o'zi kanalda admin bo'lmasa yoki kanal topilmasa, oddiy foydalanuvchini butunlay bloklab qo'ymaslik
+            if "not a member" in err_str or "chat not found" in err_str or "admin rights" in err_str:
+                logger.error(f"⚠️ Bot '{chat_identifier}' kanalida admin emas! Botni kanalda admin qiling.")
+                continue
             unsubscribed.append(ch)
 
     return len(unsubscribed) == 0, unsubscribed

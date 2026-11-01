@@ -83,8 +83,10 @@ async def show_admin_ranking(message: Message):
 
     lines = ["🏆 <b>Top 25 Yetakchilar ro'yxati:</b>\n"]
     for idx, u in enumerate(top_users, start=1):
+        name = u.get("full_name") or "Ishtirokchi"
+        clean_name = name.replace("<", "&lt;").replace(">", "&gt;")
         username_str = f"(@{u['username']})" if u.get('username') else ""
-        lines.append(f"{idx}. <b>{u['full_name']}</b> {username_str} — <b>{u['points']} ball</b> [ID: <code>{u['user_id']}</code>]")
+        lines.append(f"{idx}. <b>{clean_name}</b> {username_str} — <b>{u['points']} ball</b> [ID: <code>{u['user_id']}</code>]")
 
     await message.answer("\n".join(lines), parse_mode="HTML")
 
