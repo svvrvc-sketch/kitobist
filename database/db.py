@@ -25,9 +25,14 @@ class Database:
         """Ma'lumotlar bazasi jadvallarini yaratish"""
         if self.is_postgres and asyncpg:
             try:
-                # Supabase ba'zan ssl talab qiladi
+                # Supabase PgBouncer (port 6543) uchun statement_cache_size=0 bo'lishi shart!
                 clean_url = self.db_url.replace("postgres://", "postgresql://")
-                self.pool = await asyncpg.create_pool(dsn=clean_url, min_size=1, max_size=10)
+                self.pool = await asyncpg.create_pool(
+                    dsn=clean_url,
+                    min_size=1,
+                    max_size=10,
+                    statement_cache_size=0
+                )
                 logger.info("🚀 Supabase (PostgreSQL) ga muvaffaqiyatli ulandi!")
 
                 async with self.pool.acquire() as conn:

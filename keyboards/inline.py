@@ -16,14 +16,11 @@ def share_link_inline_keyboard(bot_username: str, user_id: int, custom_share_tex
     ref_link = f"https://t.me/{bot_username}?start={user_id}"
     
     if custom_share_text:
-        # Agar admin matn kiritgan bo'lsa va unda {ref_link} bo'lsa almashtiramiz
         clean_text = custom_share_text.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "").replace("<code>", "").replace("</code>", "")
-        if "{ref_link}" in clean_text:
-            full_share_message = clean_text.replace("{ref_link}", ref_link)
-        else:
-            full_share_message = f"{clean_text}\n\n👉 Ishtirok etish havolasi:\n{ref_link}"
+        # Agar matnda ref_link bo'lsa uni olib tashlaymiz, chunki Telegram url parametrida o'zi pastga qo'shadi
+        share_text = clean_text.replace("{ref_link}", "").strip()
     else:
-        full_share_message = (
+        share_text = (
             "🥳 DIQQAT XUSHXABAR❗️\n"
             "Kitobist kanalida kitob sovg‘ali konkurs! 📚🎁\n\n"
             "SOVG'ALAR 😇\n"
@@ -32,12 +29,11 @@ def share_link_inline_keyboard(bot_username: str, user_id: int, custom_share_tex
             "🥉 3-o‘rin: «Devona» — Fotih Duman\n"
             "🏅 4-o‘rin: «1500 yillik mahbuslar»\n"
             "⭐️ 5-o‘rin: «Fotimaning bolasi»\n\n"
-            "📖 Shartlar juda oddiy! Pastdagi havola orqali botga o‘tib, start bosing va ishtirok eting! ⬇️\n\n"
-            f"👉 Ishtirok etish havolasi:\n{ref_link}"
+            "📖 Shartlar juda oddiy! Pastdagi havola orqali botga o‘tib, start bosing va ishtirok eting! ⬇️"
         )
     
-    # Telegram share link: butun matn bitta qilib beriladi, shunda link eng pastda chiroyli chiqadi
-    encoded_share_url = f"https://t.me/share/url?url=&text={quote(full_share_message)}"
+    # Standart va 100% ishlaydigan Telegram share URL formati
+    encoded_share_url = f"https://t.me/share/url?url={quote(ref_link)}&text={quote(share_text)}"
     
     keyboard = [
         [InlineKeyboardButton(text="🚀 Do'stlarga ulashish", url=encoded_share_url)]
