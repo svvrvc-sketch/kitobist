@@ -351,12 +351,12 @@ async def show_account(event: Message | CallbackQuery):
     else:
         await event.answer(text, parse_mode="HTML")
 
-# 📊 Reyting
+# 📊 Reyting (TOP-20)
 @user_router.message(F.text == "📊 Reyting")
 async def show_rating(message: Message):
     post = await db.get_button_post("btn_rating")
     
-    top_users = await db.get_top_rankings(limit=10)
+    top_users = await db.get_top_rankings(limit=20)
     
     if not top_users:
         no_users_text = "❌ <b>Hozircha reytingda faol foydalanuvchilar mavjud emas.</b>"
@@ -367,28 +367,38 @@ async def show_rating(message: Message):
         return
 
     medals = ["🥇", "🥈", "🥉"]
-    lines = ["📊 <b>Eng ko'p do'stlarini taklif qilgan faollar (TOP-10):</b>\n"]
+    lines = ["📊 <b>Eng ko‘p do‘stlarini taklif qilgan faollar (TOP-20):</b>\n"]
 
     for idx, u in enumerate(top_users, start=1):
         icon = medals[idx - 1] if idx <= 3 else f"{idx}."
         name = u.get("full_name") or "Ishtirokchi"
         clean_name = name.replace("<", "&lt;").replace(">", "&gt;")
-        lines.append(f"{icon} <b>{clean_name}</b> — {u['points']} ta taklif")
+        
+        # Username mavjud bo'lsa ko'rsatamiz
+        username = u.get("username")
+        if username:
+            user_display = f"<b>{clean_name}</b> (@{username})"
+        else:
+            user_display = f"<b>{clean_name}</b>"
+            
+        lines.append(f"{icon} {user_display} — <b>{u['points']} ta</b> taklif")
 
     user_rank = await db.get_user_rank(message.from_user.id)
     db_user = await db.get_user(message.from_user.id)
     user_points = db_user.get("points", 0) if db_user else 0
 
     if user_rank:
-        lines.append(f"\n⭐️ <b>Sizning ko'rsatkichingiz:</b> {user_points} ta taklif ({user_rank}-o'rin)")
+        lines.append(f"\n⭐️ <b>Sizning ko‘rsatkichingiz:</b> {user_points} ta taklif ({user_rank}-o‘rin)")
     else:
-        lines.append(f"\n⭐️ <b>Sizning ko'rsatkichingiz:</b> {user_points} ta taklif")
+        lines.append(f"\n⭐️ <b>Sizning ko‘rsatkichingiz:</b> {user_points} ta taklif")
 
     rating_text = "\n".join(lines)
     
+    prefix = f"{post.get('content_text', '').strip()}\n\n" if (post and post.get("content_text")) else ""
+    full_text = f"{prefix}{rating_text}".strip()
+
     if post and post.get("photo_id"):
-        caption = f"{post.get('content_text', '')}\n\n{rating_text}".strip()
-        await message.answer_photo(photo=post["photo_id"], caption=caption, parse_mode="HTML")
+        await message.answer_photo(photo=post["photo_id"], caption=full_text, parse_mode="HTML")
     else:
-        await message.answer(rating_text, parse_mode="HTML")
+        await message.answer(full_text, parse_mode="HTML")
 
