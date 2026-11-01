@@ -164,6 +164,18 @@ async def complete_registration(message: Message, bot: Bot, phone: str):
     # Taklif qilgan foydalanuvchiga bildirishnoma va +1 ball
     if referrer_id:
         try:
+            # Agar taklif qiluvchining ismi bazada bo'lmasa yoki yangilanishi kerak bo'lsa
+            try:
+                ref_chat = await bot.get_chat(referrer_id)
+                if ref_chat:
+                    await db.add_or_update_user(
+                        user_id=referrer_id,
+                        full_name=ref_chat.full_name or "Foydalanuvchi",
+                        username=ref_chat.username
+                    )
+            except Exception:
+                pass
+
             await bot.send_message(
                 chat_id=referrer_id,
                 text=(
