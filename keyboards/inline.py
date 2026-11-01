@@ -17,23 +17,32 @@ def share_link_inline_keyboard(bot_username: str, user_id: int, custom_share_tex
     
     if custom_share_text:
         clean_text = custom_share_text.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "").replace("<code>", "").replace("</code>", "")
-        # Agar matnda ref_link bo'lsa uni olib tashlaymiz, chunki Telegram url parametrida o'zi pastga qo'shadi
-        share_text = clean_text.replace("{ref_link}", "").strip()
+        if "{ref_link}" in clean_text:
+            full_share_message = clean_text.replace("{ref_link}", ref_link).strip()
+        elif "t.me/" in clean_text:
+            full_share_message = clean_text.strip()
+        else:
+            full_share_message = (
+                f"{clean_text.strip()}\n\n"
+                f"👉 Ishtirok etish uchun havola:\n{ref_link}"
+            )
     else:
-        share_text = (
-            "🥳 DIQQAT XUSHXABAR❗️\n"
-            "Kitobist kanalida kitob sovg‘ali konkurs! 📚🎁\n\n"
-            "SOVG'ALAR 😇\n"
-            "🥇 1-o‘rin: «Saodat Asri» (4 qismli to‘liq to‘plam)\n"
+        full_share_message = (
+            "🥳 DIQQAT, AJOYIB KONKURS!\n\n"
+            "Kitobsevarlar uchun qimmatbaho kitoblar to‘plami sovg‘aga berilmoqda! 📚✨\n\n"
+            "🎁 G‘oliblarni kutayotgan kitoblar:\n"
+            "🥇 1-o‘rin: «Saodat Asri qissalari» (4 qismli to‘liq to‘plam)\n"
             "🥈 2-o‘rin: «Ko‘zlaringni haromdan saqla»\n"
             "🥉 3-o‘rin: «Devona» — Fotih Duman\n"
             "🏅 4-o‘rin: «1500 yillik mahbuslar»\n"
             "⭐️ 5-o‘rin: «Fotimaning bolasi»\n\n"
-            "📖 Shartlar juda oddiy! Pastdagi havola orqali botga o‘tib, start bosing va ishtirok eting! ⬇️"
+            "📖 Qatnashish sharti juda oddiy:\n"
+            "Quyidagi havola orqali botga kiring, shaxsiy taklif havolangizni oling va imkoniyatni qo‘ldan boy bermang! Vaqt chegaralangan, hoziroq boshlang! ⬇️\n\n"
+            f"👉 Ishtirok etish uchun havola:\n{ref_link}"
         )
     
-    # Standart va 100% ishlaydigan Telegram share URL formati
-    encoded_share_url = f"https://t.me/share/url?url={quote(ref_link)}&text={quote(share_text)}"
+    # Faqat text parametri — havola xabarning eng pastida tartibli chiqadi
+    encoded_share_url = f"https://t.me/share/url?text={quote(full_share_message)}"
     
     keyboard = [
         [InlineKeyboardButton(text="🚀 Do'stlarga ulashish", url=encoded_share_url)]
