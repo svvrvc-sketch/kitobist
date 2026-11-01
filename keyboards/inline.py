@@ -3,7 +3,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from typing import List, Dict, Any
 
 def after_register_inline_keyboard() -> InlineKeyboardMarkup:
-    """Ro'yxatdan o'tgach xabar ostida chiquvchi inline tugmalar (skrinshotdagi kabi)"""
+    """Ro'yxatdan o'tgach xabar ostida chiquvchi inline tugmalar"""
     keyboard = [
         [InlineKeyboardButton(text="🔗 Mening shaxsiy linkim", callback_data="show_my_link")],
         [InlineKeyboardButton(text="📄 Mening hisobim", callback_data="show_my_account")],
@@ -18,16 +18,11 @@ def share_link_inline_keyboard(bot_username: str, user_id: int, custom_share_tex
     if custom_share_text:
         clean_text = custom_share_text.replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "").replace("<code>", "").replace("</code>", "")
         if "{ref_link}" in clean_text:
-            full_share_message = clean_text.replace("{ref_link}", ref_link).strip()
-        elif "t.me/" in clean_text:
-            full_share_message = clean_text.strip()
+            share_text = clean_text.replace("{ref_link}", ref_link).strip()
         else:
-            full_share_message = (
-                f"{clean_text.strip()}\n\n"
-                f"👉 Ishtirok etish uchun havola:\n{ref_link}"
-            )
+            share_text = f"{clean_text.strip()}\n\n👉 Ishtirok etish uchun havola:\n{ref_link}"
     else:
-        full_share_message = (
+        share_text = (
             "🥳 DIQQAT, AJOYIB KONKURS!\n\n"
             "Kitobsevarlar uchun qimmatbaho kitoblar to‘plami sovg‘aga berilmoqda! 📚✨\n\n"
             "🎁 G‘oliblarni kutayotgan kitoblar:\n"
@@ -36,13 +31,13 @@ def share_link_inline_keyboard(bot_username: str, user_id: int, custom_share_tex
             "🥉 3-o‘rin: «Devona» — Fotih Duman\n"
             "🏅 4-o‘rin: «1500 yillik mahbuslar»\n"
             "⭐️ 5-o‘rin: «Fotimaning bolasi»\n\n"
-            "📖 Qatnashish sharti juda oddiy:\n"
-            "Quyidagi havola orqali botga kiring, shaxsiy taklif havolangizni oling va imkoniyatni qo‘ldan boy bermang! Vaqt chegaralangan, hoziroq boshlang! ⬇️\n\n"
+            "📖 Qatnashish sharti juda oddiy: Quyidagi havola orqali botga kiring, "
+            "shaxsiy taklif havolangizni oling va imkoniyatni qo‘ldan boy bermang! Vaqt chegaralangan, hoziroq boshlang! ⬇️\n\n"
             f"👉 Ishtirok etish uchun havola:\n{ref_link}"
         )
     
-    # Faqat text parametri — havola xabarning eng pastida tartibli chiqadi
-    encoded_share_url = f"https://t.me/share/url?text={quote(full_share_message)}"
+    # Telegram rasmiy ulashish havolasi: url har doim valid va text encode qilingan
+    encoded_share_url = f"https://t.me/share/url?url={quote(ref_link)}&text={quote(share_text)}"
     
     keyboard = [
         [InlineKeyboardButton(text="🚀 Do'stlarga ulashish", url=encoded_share_url)]
@@ -75,7 +70,7 @@ def admin_channels_keyboard(channels: List[Dict[str, Any]]) -> InlineKeyboardMar
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 def admin_buttons_list_keyboard() -> InlineKeyboardMarkup:
-    """Admin uchun tahrirlanadigan tugmalar ro'yxati (skrinshotdagi kabi)"""
+    """Admin uchun tahrirlanadigan tugmalar ro'yxati"""
     keyboard = [
         [InlineKeyboardButton(text="🔗 Mening shaxsiy linkim", callback_data="edit_btn_link")],
         [
@@ -88,6 +83,7 @@ def admin_buttons_list_keyboard() -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="📚 Qo'llanma", callback_data="edit_btn_guide")
-        ]
+        ],
+        [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel_btn_edit")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=keyboard)

@@ -25,15 +25,16 @@ class Database:
         """Ma'lumotlar bazasi jadvallarini yaratish"""
         if self.is_postgres and asyncpg:
             try:
-                # Supabase PgBouncer (port 6543) uchun statement_cache_size=0 bo'lishi shart!
-                clean_url = self.db_url.replace("postgres://", "postgresql://")
+                # 6543 portni 5432 ga avtomatik o'tkazish (Session pooler barqarorroq)
+                clean_url = self.db_url.replace("postgres://", "postgresql://").replace(":6543", ":5432")
                 self.pool = await asyncpg.create_pool(
                     dsn=clean_url,
                     min_size=1,
                     max_size=10,
-                    statement_cache_size=0
+                    statement_cache_size=0,
+                    command_timeout=60
                 )
-                logger.info("🚀 Supabase (PostgreSQL) ga muvaffaqiyatli ulandi!")
+                logger.info("🚀 Supabase (PostgreSQL 5432) ga muvaffaqiyatli ulandi!")
 
                 async with self.pool.acquire() as conn:
                     await conn.execute("""
@@ -49,30 +50,22 @@ class Database:
                             is_blocked INT DEFAULT 0,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         );
-                    """)
-                    await conn.execute("""
                         CREATE TABLE IF NOT EXISTS referrals (
                             id SERIAL PRIMARY KEY,
                             referrer_id BIGINT NOT NULL,
                             referred_id BIGINT UNIQUE NOT NULL,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         );
-                    """)
-                    await conn.execute("""
                         CREATE TABLE IF NOT EXISTS channels (
                             id SERIAL PRIMARY KEY,
                             channel_id TEXT UNIQUE NOT NULL,
                             channel_title TEXT,
                             channel_url TEXT
                         );
-                    """)
-                    await conn.execute("""
                         CREATE TABLE IF NOT EXISTS settings (
                             key TEXT PRIMARY KEY,
                             value TEXT
                         );
-                    """)
-                    await conn.execute("""
                         CREATE TABLE IF NOT EXISTS button_posts (
                             button_key TEXT PRIMARY KEY,
                             photo_id TEXT,
@@ -84,7 +77,7 @@ class Database:
                 logger.error(f"❌ Supabase ulanishida xatolik: {e}. Lokal SQLite ga o'tilmoqda...")
                 self.is_postgres = False
 
-        # Agar Postgres bo'lmasa yoki xato bersa -> SQLite
+        # SQLite fallback
         async with aiosqlite.connect(self.local_path) as db:
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS users (
@@ -146,7 +139,7 @@ class Database:
     async def add_or_update_user(self, user_id: int, full_name: str, username: Optional[str] = None, referrer_id: Optional[int] = None) -> bool:
         if self.is_postgres and self.pool:
             async with self.pool.acquire() as conn:
-                existing = await conn.fetchrow("SELECT user_id FROM users WHERE user_id = $1", user_id)
+                existing = await conn.fetchrow("SELECT user_id, referrer_id FROM users WHERE user_id = $1", user_id)
                 if not existing:
                     await conn.execute(
                         "INSERT INTO users (user_id, full_name, username, referrer_id) VALUES ($1, $2, $3, $4)",
@@ -154,6 +147,7 @@ class Database:
                     )
                     return True
                 else:
+                    # Agar oldin ro'yxatdan o'tgan bo'lsa faqat ism/username yangilanadi
                     await conn.execute(
                         "UPDATE users SET full_name = $1, username = $2 WHERE user_id = $3",
                         full_name, username, user_id
@@ -178,35 +172,44 @@ class Database:
                     return False
 
     async def verify_user_phone(self, user_id: int, phone: str) -> Optional[int]:
+        """
+        Foydalanuvchi telefonini tasdiqlash va referal ballini hisoblash.
+        """
         if self.is_postgres and self.pool:
             async with self.pool.acquire() as conn:
-                user = await conn.fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
-                if not user:
-                    return None
+                async with conn.transaction():
+                    user = await conn.fetchrow("SELECT * FROM users WHERE user_id = $1 FOR UPDATE", user_id)
+                    if not user:
+                        return None
 
-                if user["is_verified"] == 1:
-                    await conn.execute("UPDATE users SET phone = $1 WHERE user_id = $2", phone, user_id)
-                    return None
+                    # Agar allaqachon tasdiqlangan bo'lsa
+                    if user["is_verified"] == 1:
+                        await conn.execute("UPDATE users SET phone = $1 WHERE user_id = $2", phone, user_id)
+                        return None
 
-                await conn.execute("UPDATE users SET phone = $1, is_verified = 1 WHERE user_id = $2", phone, user_id)
-                referrer_id = user["referrer_id"]
+                    # Tasdiqlash
+                    await conn.execute("UPDATE users SET phone = $1, is_verified = 1 WHERE user_id = $2", phone, user_id)
+                    referrer_id = user["referrer_id"]
 
-                if referrer_id and referrer_id != user_id:
-                    ref_user = await conn.fetchrow("SELECT user_id FROM users WHERE user_id = $1", referrer_id)
-                    if ref_user:
-                        try:
+                    # Agar taklif qilgan odam bo'lsa va o'zi bo'lmasa
+                    if referrer_id and referrer_id != user_id:
+                        # Oldin bu referal yozilganmi tekshirish
+                        ref_exists = await conn.fetchrow(
+                            "SELECT id FROM referrals WHERE referred_id = $1", user_id
+                        )
+                        if not ref_exists:
                             await conn.execute(
                                 "INSERT INTO referrals (referrer_id, referred_id) VALUES ($1, $2)",
                                 referrer_id, user_id
                             )
+                            # Taklif qiluvchiga +1 ball
                             await conn.execute(
                                 "UPDATE users SET points = points + 1 WHERE user_id = $1",
                                 referrer_id
                             )
+                            logger.info(f"⭐️ Referal ball qo'shildi: Referrer {referrer_id} <- Referred {user_id}")
                             return referrer_id
-                        except Exception:
-                            pass
-                return None
+                    return None
         else:
             async with aiosqlite.connect(self.local_path) as db:
                 db.row_factory = aiosqlite.Row
@@ -227,22 +230,19 @@ class Database:
 
                     referrer_id = user["referrer_id"]
                     if referrer_id and referrer_id != user_id:
-                        async with db.execute("SELECT user_id FROM users WHERE user_id = ?", (referrer_id,)) as ref_cursor:
-                            ref_user = await ref_cursor.fetchone()
-                            if ref_user:
-                                try:
-                                    await db.execute(
-                                        "INSERT INTO referrals (referrer_id, referred_id) VALUES (?, ?)",
-                                        (referrer_id, user_id)
-                                    )
-                                    await db.execute(
-                                        "UPDATE users SET points = points + 1 WHERE user_id = ?",
-                                        (referrer_id,)
-                                    )
-                                    await db.commit()
-                                    return referrer_id
-                                except Exception:
-                                    pass
+                        try:
+                            await db.execute(
+                                "INSERT INTO referrals (referrer_id, referred_id) VALUES (?, ?)",
+                                (referrer_id, user_id)
+                            )
+                            await db.execute(
+                                "UPDATE users SET points = points + 1 WHERE user_id = ?",
+                                (referrer_id,)
+                            )
+                            await db.commit()
+                            return referrer_id
+                        except Exception:
+                            pass
 
                     await db.commit()
                     return None
