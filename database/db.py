@@ -139,34 +139,37 @@ class Database:
     async def add_or_update_user(self, user_id: int, full_name: str, username: Optional[str] = None, referrer_id: Optional[int] = None) -> bool:
         if self.is_postgres and self.pool:
             async with self.pool.acquire() as conn:
-                existing = await conn.fetchrow("SELECT user_id, referrer_id FROM users WHERE user_id = $1", user_id)
+                existing = await conn.fetchrow("SELECT user_id, points FROM users WHERE user_id = $1", user_id)
+                existing_refs = await conn.fetchval("SELECT COUNT(*) FROM referrals WHERE referrer_id = $1", user_id) or 0
                 if not existing:
                     await conn.execute(
-                        "INSERT INTO users (user_id, full_name, username, referrer_id) VALUES ($1, $2, $3, $4)",
-                        user_id, full_name, username, referrer_id
+                        "INSERT INTO users (user_id, full_name, username, referrer_id, points) VALUES ($1, $2, $3, $4, $5)",
+                        user_id, full_name, username, referrer_id, existing_refs
                     )
                     return True
                 else:
-                    # Agar oldin ro'yxatdan o'tgan bo'lsa faqat ism/username yangilanadi
+                    new_points = max(existing.get("points") or 0, existing_refs)
                     await conn.execute(
-                        "UPDATE users SET full_name = $1, username = $2 WHERE user_id = $3",
-                        full_name, username, user_id
+                        "UPDATE users SET full_name = $1, username = $2, points = $3 WHERE user_id = $4",
+                        full_name, username, new_points, user_id
                     )
                     return False
         else:
             async with aiosqlite.connect(self.local_path) as db:
                 existing = await self.get_user(user_id)
+                existing_refs = await self.get_referral_count(user_id)
                 if not existing:
                     await db.execute(
-                        "INSERT INTO users (user_id, full_name, username, referrer_id) VALUES (?, ?, ?, ?)",
-                        (user_id, full_name, username, referrer_id)
+                        "INSERT INTO users (user_id, full_name, username, referrer_id, points) VALUES (?, ?, ?, ?, ?)",
+                        (user_id, full_name, username, referrer_id, existing_refs)
                     )
                     await db.commit()
                     return True
                 else:
+                    new_points = max(existing.get("points") or 0, existing_refs)
                     await db.execute(
-                        "UPDATE users SET full_name = ?, username = ? WHERE user_id = ?",
-                        (full_name, username, user_id)
+                        "UPDATE users SET full_name = ?, username = ?, points = ? WHERE user_id = ?",
+                        (full_name, username, new_points, user_id)
                     )
                     await db.commit()
                     return False
@@ -202,11 +205,12 @@ class Database:
                                 "INSERT INTO referrals (referrer_id, referred_id) VALUES ($1, $2)",
                                 referrer_id, user_id
                             )
-                            # Taklif qiluvchiga +1 ball
-                            await conn.execute(
-                                "UPDATE users SET points = points + 1 WHERE user_id = $1",
-                                referrer_id
-                            )
+                            # Taklif qiluvchiga +1 ball (mavjud bo'lmasa yaratib qo'yamiz)
+                            await conn.execute("""
+                                INSERT INTO users (user_id, full_name, points)
+                                VALUES ($1, 'Ishtirokchi', 1)
+                                ON CONFLICT (user_id) DO UPDATE SET points = users.points + 1
+                            """, referrer_id)
                             logger.info(f"⭐️ Referal ball qo'shildi: Referrer {referrer_id} <- Referred {user_id}")
                             return referrer_id
                     return None
@@ -235,10 +239,11 @@ class Database:
                                 "INSERT INTO referrals (referrer_id, referred_id) VALUES (?, ?)",
                                 (referrer_id, user_id)
                             )
-                            await db.execute(
-                                "UPDATE users SET points = points + 1 WHERE user_id = ?",
-                                (referrer_id,)
-                            )
+                            await db.execute("""
+                                INSERT INTO users (user_id, full_name, points)
+                                VALUES (?, 'Ishtirokchi', 1)
+                                ON CONFLICT (user_id) DO UPDATE SET points = users.points + 1
+                            """, (referrer_id,))
                             await db.commit()
                             return referrer_id
                         except Exception:
@@ -258,7 +263,7 @@ class Database:
                     row = await cursor.fetchone()
                     return row[0] if row else 0
 
-    async def get_top_rankings(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_top_rankings(self, limit: int = 20) -> List[Dict[str, Any]]:
         if self.is_postgres and self.pool:
             async with self.pool.acquire() as conn:
                 rows = await conn.fetch(
