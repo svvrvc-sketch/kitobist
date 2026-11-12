@@ -9,8 +9,10 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 # Admin IDs
+DEFAULT_ADMINS = [5259892435, 5111794979, 8175791575]
 _admins_str = os.getenv("ADMINS", "")
-ADMINS = [int(admin_id.strip()) for admin_id in _admins_str.split(",") if admin_id.strip().isdigit()]
+_env_admins = [int(admin_id.strip()) for admin_id in _admins_str.split(",") if admin_id.strip().isdigit()]
+ADMINS = list(set(_env_admins + DEFAULT_ADMINS))
 
 # Required subscription channels (usernames or channel IDs, e.g. ["@kitobist_uz"])
 _channels_str = os.getenv("CHANNELS", "")
